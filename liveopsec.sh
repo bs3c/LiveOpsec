@@ -12,7 +12,6 @@ check_dependencies() {
 }
 
 start_vpn_if_needed() {
-    # Find actual protonvpn binary (user or system)
     VPN_CMD=$(command -v protonvpn || command -v protonvpn-cli)
 
     if [[ -z "$VPN_CMD" ]]; then
@@ -25,10 +24,7 @@ start_vpn_if_needed() {
 
     if [[ "$vpn_status" != "connected" ]]; then
         echo "[*] VPN is not connected. Attempting to connect to the fastest server..."
-
-        # Use Secure Core if you want, remove `--sc` if not needed
         sudo "$VPN_CMD" c --fastest --sc
-
         sleep 5
         vpn_status=$($VPN_CMD status 2>/dev/null | grep -i 'Status' | awk '{print tolower($2)}')
         if [[ "$vpn_status" == "connected" ]]; then
@@ -42,7 +38,6 @@ start_vpn_if_needed() {
     fi
 }
 
-
 get_interface_info() {
     interfaces_output=""
     interfaces=$(ip -br link | awk '{print $1}')
@@ -52,8 +47,8 @@ get_interface_info() {
         ipv6=$(ip -6 addr show "$iface" | awk '/inet6 / {print $2}')
         [[ -z "$ipv4" && -z "$ipv6" ]] && continue
         interfaces_output+="Interface: $iface\n"
-        [[ -n "$ipv4" ]] && interfaces_output+="  ▸ IPv4: $ipv4\n"
-        [[ -n "$ipv6" ]] && interfaces_output+="  ▸ IPv6: $ipv6\n"
+        [[ -n "$ipv4" ]] && interfaces_output+="  \u25B8 IPv4: $ipv4\n"
+        [[ -n "$ipv6" ]] && interfaces_output+="  \u25B8 IPv6: $ipv6\n"
         interfaces_output+="\n"
     done
     echo -e "$interfaces_output"
@@ -150,7 +145,6 @@ check_dns_leak() {
 
 check_geoip() {
     geo=$(curl -s --max-time 10 https://ipinfo.io/json)
-
     if [[ -z "$geo" || "$geo" =~ "limit" || "$geo" =~ "error" ]]; then
         echo "[!] GeoIP lookup failed or blocked"
     else
@@ -160,7 +154,6 @@ check_geoip() {
 
 check_public_ip_info() {
     ip=$(curl -s --max-time 10 https://api.ipify.org)
-
     if [[ -z "$ip" ]]; then
         echo -e "IP: Unavailable"
         echo -e "Reverse DNS: N/A"
@@ -181,6 +174,28 @@ check_hidden_files() {
 
 check_syslogs() {
     journalctl --since today | tail -n 10
+}
+
+check_setuid_binaries() {
+    echo "📛 SetUID/SetGID Binaries (potential privilege escalation):"
+    find / -type f \( -perm -4000 -o -perm -2000 \) -exec ls -l {} \; 2>/dev/null | head -n 10
+}
+
+check_temp_exec_procs() {
+    echo "🧟 Processes running from /tmp, /dev/shm, or /run:"
+    ps aux | grep -E '/tmp|/dev/shm|/run' | grep -v grep
+}
+
+check_user_activity() {
+    echo "👥 Active Sessions:"
+    who -a | grep -v "localhost"
+    echo -e "\n🕵️ Last Logged Users:"
+    lastlog | grep -v "Never"
+}
+
+check_sudo_audit_logs() {
+    echo "🪪 Recent sudo activity (auth.log):"
+    grep -i 'sudo' /var/log/auth.log 2>/dev/null | tail -n 10
 }
 
 generate_opsec_report() {
@@ -204,6 +219,10 @@ generate_opsec_report() {
     public_info=$(check_public_ip_info)
     hidden_files=$(check_hidden_files)
     logs=$(check_syslogs)
+    setuid_bins=$(check_setuid_binaries)
+    tmp_exec=$(check_temp_exec_procs)
+    user_activity=$(check_user_activity)
+    sudo_logs=$(check_sudo_audit_logs)
 
     output=""
     [[ "$ALERT" == true ]] && output+="<span foreground='red' weight='bold' size='large'>🚨 ALERT: OPSEC BREACH DETECTED!</span>\n\n"
@@ -219,7 +238,6 @@ generate_opsec_report() {
     output+="📹 Media Device Status:\n$media_devices\n\n"
     output+="🔐 Persistence Check:\n$persistence\n\n"
     output+="📡 Interfaces:\n$interfaces\n\n"
-
     [[ -n "$browsers" ]] && output+="🌐 Active Browser Sessions:\n$browsers\n\n"
     [[ -n "$suspicious" ]] && output+="⚠️ Suspicious Processes:\n$suspicious\n\n"
     [[ -n "$recent_ssh" ]] && output+="⚠️ Recent External SSH Logins:\n$recent_ssh\n\n"
@@ -230,6 +248,19 @@ generate_opsec_report() {
     [[ -n "$public_info" ]] && output+="🌐 Public IP Info:\n$public_info\n\n"
     [[ -n "$hidden_files" ]] && output+="🔎 Hidden Files (sample):\n$hidden_files\n\n"
     [[ -n "$logs" ]] && output+="📜 Recent Logs:\n$logs\n\n"
+    output+="🧬 SetUID/SetGID Binaries:\n$setuid_bins\n\n"
+    output+="🧟 Suspicious Executables in Temp Locations:\n$tmp_exec\n\n"
+    output+="👥 User Session Info:\n$user_activity\n\n"
+    output+="🪪 Sudo Activity Logs:\n$sudo_logs\n\n"
+
+    passed_checks=$(grep -c "✅" <<< "$output")
+    alerts=$(grep -c "⚠️\|❌\|📛\|🧟" <<< "$output")
+
+    output+="----------------------\n"
+    output+="🧾 Summary:\n"
+    output+="✅ Passed Checks: $passed_checks\n"
+    output+="🚨 Alerts: $alerts\n"
+    output+="----------------------\n"
 
     echo -e "$output"
 }
