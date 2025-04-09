@@ -98,5 +98,5 @@ The live dashboard updates every 10 seconds. Any compromise will trigger a visua
 
 ## 👤 Author
 
-Crafted by [@bsec](https://github.com/bsec)  
+Crafted by [@bsec](https://github.com/bs3c)  
 Because real hackers monitor themselves. 🕵️‍♂️💻
