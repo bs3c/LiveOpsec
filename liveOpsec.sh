@@ -227,7 +227,7 @@ generate_opsec_report() {
     output=""
     [[ "$ALERT" == true ]] && output+="<span foreground='red' weight='bold' size='large'>🚨 ALERT: OPSEC BREACH DETECTED!</span>\n\n"
 
-    output+="🔒 Ghosint - Enhanced OPSEC Monitor\n\n"
+    output+="🔒 LiveOpsec - Live OPSEC Monitor\n\n"
     output+="💼 Hostname: $hostname\n"
     output+="💐 Default Interface: $default_iface\n"
     output+="🆔 MAC Address: $mac\n"
