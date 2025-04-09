@@ -33,7 +33,6 @@ check_tor_status() {
 
     if [[ "$tor_status" == "active" ]]; then
         status="✔️ Tor service is running"
-
         tor_check_output=$(curl -s --socks5-hostname 127.0.0.1:9050 --max-time 10 https://check.torproject.org 2>/dev/null)
         if echo "$tor_check_output" | grep -q "Congratulations"; then
             status+=" (✔️ traffic is routed via Tor)"
@@ -228,11 +227,12 @@ generate_opsec_report() {
 }
 
 launch_yad_monitor() {
+    export GDK_BACKEND=x11
+
     (
-        while true; do
+        while :; do
             ALERT=false
-            report=$(generate_opsec_report)
-            echo "$report"
+            generate_opsec_report
             sleep 10
         done
     ) | yad --text-info \
@@ -246,13 +246,13 @@ launch_yad_monitor() {
         --timeout-indicator=bottom \
         --forever \
         --markup
+
+    echo "[*] Monitor closed. Exiting."
 }
 
 main() {
     check_dependencies
-    export GDK_BACKEND=x11
     launch_yad_monitor
 }
 
 main
-
