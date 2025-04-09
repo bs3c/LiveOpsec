@@ -1,6 +1,3 @@
-# Python script to generate a README.md file for liveOpsec
-
-readme_content = """
 # 🛡️ liveOpsec
 
 liveOpsec is a real-time, terminal-based OPSEC monitoring tool for red teamers, security professionals, and privacy-focused users. It detects system compromise, suspicious activity, and misconfigurations — all while ensuring your VPN is live and active before displaying results.
@@ -91,4 +88,4 @@ liveOpsec is for educational, red team, and internal defense purposes only. Do n
 
 Crafted by [@bsec](https://github.com/bsec)  
 Because real hackers monitor themselves. 🕵️‍♂️💻
-"""
+
