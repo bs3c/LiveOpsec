@@ -30,19 +30,23 @@ get_interface_info() {
 check_tor_status() {
     local status=""
     tor_status=$(systemctl is-active tor 2>/dev/null)
+
     if [[ "$tor_status" == "active" ]]; then
         status="✔️ Tor service is running"
+
+        tor_check_output=$(curl -s --socks5-hostname 127.0.0.1:9050 --max-time 10 https://check.torproject.org 2>/dev/null)
+        if echo "$tor_check_output" | grep -q "Congratulations"; then
+            status+=" (✔️ traffic is routed via Tor)"
+        else
+            ALERT=true
+            status+=" (⚠️ traffic NOT using Tor)"
+        fi
     else
         ALERT=true
-        status="❌ Tor service is NOT running"
+        status="❌ Tor service is NOT running (skipping routing check)"
     fi
 
-    tor_ip_check=$(curl -s --socks5-hostname 127.0.0.1:9050 https://check.torproject.org |
-        grep -q "Congratulations" && echo "(✔️ traffic is routed via Tor)" || {
-            ALERT=true
-            echo "(⚠️ traffic NOT using Tor)"
-        })
-    echo "$status $tor_ip_check"
+    echo "$status"
 }
 
 check_vpn_status() {
