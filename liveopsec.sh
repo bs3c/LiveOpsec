@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ALERT=false
+
 check_dependencies() {
     for tool in yad curl ip hostname awk grep sed systemctl ss ps lsof dig host whois find; do
         command -v "$tool" >/dev/null 2>&1 || {
@@ -31,11 +33,15 @@ check_tor_status() {
     if [[ "$tor_status" == "active" ]]; then
         status="✔️ Tor service is running"
     else
+        ALERT=true
         status="❌ Tor service is NOT running"
     fi
 
-    tor_ip_check=$(curl -s --socks5-hostname 127.0.0.1:9050 https://check.torproject.org \
-        | grep -q "Congratulations" && echo "(✔️ traffic is routed via Tor)" || echo "(⚠️ traffic NOT using Tor)")
+    tor_ip_check=$(curl -s --socks5-hostname 127.0.0.1:9050 https://check.torproject.org |
+        grep -q "Congratulations" && echo "(✔️ traffic is routed via Tor)" || {
+            ALERT=true
+            echo "(⚠️ traffic NOT using Tor)"
+        })
     echo "$status $tor_ip_check"
 }
 
@@ -45,6 +51,7 @@ check_vpn_status() {
         vpn_ip=$(ip -4 addr show "$vpn_iface" | awk '/inet / {print $2}')
         echo "✅ VPN active on $vpn_iface ($vpn_ip)"
     else
+        ALERT=true
         echo "❌ No VPN interface detected"
     fi
 }
@@ -52,24 +59,40 @@ check_vpn_status() {
 check_firewall_status() {
     if command -v ufw >/dev/null; then
         ufw_status=$(sudo ufw status | grep -i active)
-        [[ -n "$ufw_status" ]] && echo "✅ UFW is active" || echo "❌ UFW is inactive"
+        [[ -n "$ufw_status" ]] && echo "✅ UFW is active" || {
+            ALERT=true
+            echo "❌ UFW is inactive"
+        }
     else
         iptables_count=$(sudo iptables -L | wc -l)
-        [[ $iptables_count -gt 8 ]] && echo "✅ iptables rules are active" || echo "❌ No active iptables rules"
+        [[ $iptables_count -gt 8 ]] && echo "✅ iptables rules are active" || {
+            ALERT=true
+            echo "❌ No active iptables rules"
+        }
     fi
 }
 
 check_loaded_modules() {
     suspicious_modules=$(lsmod | grep -Ei 'hide|rootkit|stealth')
-    [[ -n "$suspicious_modules" ]] && echo "$suspicious_modules" || echo "✅ No suspicious kernel modules detected"
+    [[ -n "$suspicious_modules" ]] && {
+        ALERT=true
+        echo "$suspicious_modules"
+    } || echo "✅ No suspicious kernel modules detected"
 }
 
 check_media_devices() {
     cam=$(lsof /dev/video0 2>/dev/null)
     mic=$(lsof /dev/snd/* 2>/dev/null)
 
-    [[ -n "$cam" ]] && echo "⚠️ Webcam may be in use:\n$cam\n" || echo "✅ Webcam not in use"
-    [[ -n "$mic" ]] && echo "⚠️ Microphone may be in use:\n$mic\n" || echo "✅ Microphone not in use"
+    [[ -n "$cam" ]] && {
+        ALERT=true
+        echo "⚠️ Webcam may be in use:\n$cam\n"
+    } || echo "✅ Webcam not in use"
+
+    [[ -n "$mic" ]] && {
+        ALERT=true
+        echo "⚠️ Microphone may be in use:\n$mic\n"
+    } || echo "✅ Microphone not in use"
 }
 
 check_persistence() {
@@ -84,7 +107,11 @@ check_browser_sessions() {
 }
 
 check_suspicious_procs() {
-    ps aux | grep -Ei "keylog|tcpdump|wireshark|netcat|nmap|socat|nc|strace|xinput|xev|ffmpeg|obs|peek" | grep -v grep
+    procs=$(ps aux | grep -Ei "keylog|tcpdump|wireshark|netcat|nmap|socat|nc|strace|xinput|xev|ffmpeg|obs|peek" | grep -v grep)
+    [[ -n "$procs" ]] && {
+        ALERT=true
+        echo "$procs"
+    }
 }
 
 check_recent_ssh() {
@@ -123,11 +150,12 @@ check_public_ip_info() {
 }
 
 check_ip_leak() {
-    real_ip=$(curl -s https://icanhazip.com)
-    tor_ip=$(curl -s --socks5-hostname 127.0.0.1:9050 https://icanhazip.com)
+    real_ip=$(curl -s --max-time 5 https://icanhazip.com || echo "Unavailable")
+    tor_ip=$(curl -s --socks5-hostname 127.0.0.1:9050 --max-time 10 https://icanhazip.com || echo "Unavailable")
     if [[ "$real_ip" == "$tor_ip" ]]; then
         echo "✅ All good - IP masked"
     else
+        ALERT=true
         echo "⚠️ Possible leak - Tor not enforced globally"
     fi
 }
@@ -164,31 +192,33 @@ generate_opsec_report() {
     hidden_files=$(check_hidden_files)
     logs=$(check_syslogs)
 
-    output="🔒 Ghosint - Enhanced OPSEC Monitor
+    output=""
+    [[ "$ALERT" == true ]] && output+="<span foreground='red' weight='bold' size='large'>🚨 ALERT: OPSEC BREACH DETECTED!</span>\n\n"
 
-📛 Hostname: $hostname
-🔌 Default Interface: $default_iface
-🆔 MAC Address: $mac
-🧠 DNS: $dns
-🧅 Tor Status: $tor_check
-🛡️ IP Leak Check: $tor_leak_status
-🕵️ VPN Status: $vpn_status
-🚧 Firewall Status: $firewall_status
-🧬 Kernel Module Check:\n$kernel_modules\n
-📹 Media Device Status:\n$media_devices\n
-🔐 Persistence Check:\n$persistence\n
-📡 Interfaces:\n$interfaces"
+    output+="🔒 Ghosint - Enhanced OPSEC Monitor\n\n"
+    output+="💼 Hostname: $hostname\n"
+    output+="💐 Default Interface: $default_iface\n"
+    output+="🆔 MAC Address: $mac\n"
+    output+="🧠 DNS: $dns\n"
+    output+="🧅 Tor Status: $tor_check\n"
+    output+="🛡️ IP Leak Check: $tor_leak_status\n"
+    output+="🕵️ VPN Status: $vpn_status\n"
+    output+="⛑️ Firewall Status: $firewall_status\n"
+    output+="🧬 Kernel Module Check:\n$kernel_modules\n\n"
+    output+="📹 Media Device Status:\n$media_devices\n\n"
+    output+="🔐 Persistence Check:\n$persistence\n\n"
+    output+="📡 Interfaces:\n$interfaces\n\n"
 
     [[ -n "$browsers" ]] && output+="🌐 Active Browser Sessions:\n$browsers\n\n"
     [[ -n "$suspicious" ]] && output+="⚠️ Suspicious Processes:\n$suspicious\n\n"
     [[ -n "$recent_ssh" ]] && output+="⚠️ Recent External SSH Logins:\n$recent_ssh\n\n"
     [[ -n "$listening_ports" ]] && output+="⚙️ Listening Ports:\n$listening_ports\n\n"
-    [[ -n "$conns" ]] && output+="🛰️ Active Connections:\n$conns\n\n"
+    [[ -n "$conns" ]] && output+="🚁 Active Connections:\n$conns\n\n"
     [[ -n "$dns_leak" ]] && output+="🔍 DNS Leak Check:\n$dns_leak\n\n"
     [[ -n "$geoip" ]] && output+="🌍 GeoIP Info:\n$geoip\n\n"
     [[ -n "$public_info" ]] && output+="🌐 Public IP Info:\n$public_info\n\n"
     [[ -n "$hidden_files" ]] && output+="🔎 Hidden Files (sample):\n$hidden_files\n\n"
-    [[ -n "$logs" ]] && output+="📝 Recent Logs:\n$logs\n\n"
+    [[ -n "$logs" ]] && output+="📜 Recent Logs:\n$logs\n\n"
 
     echo -e "$output"
 }
@@ -196,8 +226,9 @@ generate_opsec_report() {
 launch_yad_monitor() {
     (
         while true; do
-            clear
-            generate_opsec_report
+            ALERT=false
+            report=$(generate_opsec_report)
+            echo "$report"
             sleep 10
         done
     ) | yad --text-info \
@@ -206,10 +237,11 @@ launch_yad_monitor() {
         --height=800 \
         --fontname="monospace 10" \
         --center \
-        --window-icon=dialog-information \
+        --window-icon=dialog-warning \
         --no-buttons \
         --timeout-indicator=bottom \
-        --forever
+        --forever \
+        --markup
 }
 
 main() {
@@ -219,3 +251,4 @@ main() {
 }
 
 main
+
