@@ -11,6 +11,38 @@ check_dependencies() {
     done
 }
 
+start_vpn_if_needed() {
+    # Find actual protonvpn binary (user or system)
+    VPN_CMD=$(command -v protonvpn || command -v protonvpn-cli)
+
+    if [[ -z "$VPN_CMD" ]]; then
+        echo "[!] ProtonVPN CLI not found. Please run the install script."
+        ALERT=true
+        return
+    fi
+
+    vpn_status=$($VPN_CMD status 2>/dev/null | grep -i 'Status' | awk '{print tolower($2)}')
+
+    if [[ "$vpn_status" != "connected" ]]; then
+        echo "[*] VPN is not connected. Attempting to connect to the fastest server..."
+
+        # Use Secure Core if you want, remove `--sc` if not needed
+        sudo "$VPN_CMD" c --fastest --sc
+
+        sleep 5
+        vpn_status=$($VPN_CMD status 2>/dev/null | grep -i 'Status' | awk '{print tolower($2)}')
+        if [[ "$vpn_status" == "connected" ]]; then
+            echo "[+] ProtonVPN connected successfully."
+        else
+            ALERT=true
+            echo "[!] Failed to connect to ProtonVPN."
+        fi
+    else
+        echo "✅ ProtonVPN already connected."
+    fi
+}
+
+
 get_interface_info() {
     interfaces_output=""
     interfaces=$(ip -br link | awk '{print $1}')
@@ -25,27 +57,6 @@ get_interface_info() {
         interfaces_output+="\n"
     done
     echo -e "$interfaces_output"
-}
-
-check_tor_status() {
-    local status=""
-    tor_status=$(systemctl is-active tor 2>/dev/null)
-
-    if [[ "$tor_status" == "active" ]]; then
-        status="✔️ Tor service is running"
-        tor_check_output=$(curl -s --socks5-hostname 127.0.0.1:9050 --max-time 10 https://check.torproject.org 2>/dev/null)
-        if echo "$tor_check_output" | grep -q "Congratulations"; then
-            status+=" (✔️ traffic is routed via Tor)"
-        else
-            ALERT=true
-            status+=" (⚠️ traffic NOT using Tor)"
-        fi
-    else
-        ALERT=true
-        status="❌ Tor service is NOT running (skipping routing check)"
-    fi
-
-    echo "$status"
 }
 
 check_vpn_status() {
@@ -134,33 +145,34 @@ check_connections() {
 }
 
 check_dns_leak() {
-    torsocks dig +short txt o-o.myaddr.l.google.com @ns1.google.com 2>/dev/null || echo "[!] DNS leak check failed"
+    curl -s https://dnsleaktest.com | grep -i "your ip" || echo "[!] DNS leak check failed or blocked"
 }
 
 check_geoip() {
-    torsocks curl -s https://ipinfo.io/json | grep -E '"ip"|"city"|"region"|"country"' || echo "[!] GeoIP lookup failed or blocked"
+    geo=$(curl -s --max-time 10 https://ipinfo.io/json)
+
+    if [[ -z "$geo" || "$geo" =~ "limit" || "$geo" =~ "error" ]]; then
+        echo "[!] GeoIP lookup failed or blocked"
+    else
+        echo "$geo" | grep -E '"ip"|"city"|"region"|"country"' | sed 's/[",]//g'
+    fi
 }
 
 check_public_ip_info() {
-    ip=$(torsocks curl -s https://check.torproject.org/api/ip | grep -oP '(?<="IP": ")[^"]+')
-    echo -e "IP: $ip\n"
-    if [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo -e "Reverse DNS: $(host $ip 2>/dev/null || echo 'Not found')"
-        echo -e "WHOIS:\n$(whois $ip 2>/dev/null | head -n 10)"
-    else
-        echo -e "Reverse DNS: IP not valid or check failed"
-    fi
-}
+    ip=$(curl -s --max-time 10 https://api.ipify.org)
 
-check_ip_leak() {
-    real_ip=$(curl -s --max-time 5 https://icanhazip.com || echo "Unavailable")
-    tor_ip=$(curl -s --socks5-hostname 127.0.0.1:9050 --max-time 10 https://icanhazip.com || echo "Unavailable")
-    if [[ "$real_ip" == "$tor_ip" ]]; then
-        echo "✅ All good - IP masked"
-    else
-        ALERT=true
-        echo "⚠️ Possible leak - Tor not enforced globally"
+    if [[ -z "$ip" ]]; then
+        echo -e "IP: Unavailable"
+        echo -e "Reverse DNS: N/A"
+        echo -e "WHOIS: N/A"
+        return
     fi
+
+    echo -e "IP: $ip\n"
+    rdns=$(host "$ip" 2>/dev/null || echo "Not found")
+    whois_output=$(whois "$ip" 2>/dev/null | head -n 10)
+    echo -e "Reverse DNS: $rdns"
+    echo -e "WHOIS:\n$whois_output"
 }
 
 check_hidden_files() {
@@ -177,8 +189,6 @@ generate_opsec_report() {
     mac=$(ip link | grep ether | awk '{print $2}' | head -n 1)
     dns=$(grep "nameserver" /etc/resolv.conf | awk '{print $2}' | paste -sd ", ")
     interfaces=$(get_interface_info)
-    tor_check=$(check_tor_status)
-    tor_leak_status=$(check_ip_leak)
     vpn_status=$(check_vpn_status)
     firewall_status=$(check_firewall_status)
     kernel_modules=$(check_loaded_modules)
@@ -203,8 +213,6 @@ generate_opsec_report() {
     output+="💐 Default Interface: $default_iface\n"
     output+="🆔 MAC Address: $mac\n"
     output+="🧠 DNS: $dns\n"
-    output+="🧅 Tor Status: $tor_check\n"
-    output+="🛡️ IP Leak Check: $tor_leak_status\n"
     output+="🕵️ VPN Status: $vpn_status\n"
     output+="⛑️ Firewall Status: $firewall_status\n"
     output+="🧬 Kernel Module Check:\n$kernel_modules\n\n"
@@ -252,6 +260,7 @@ launch_yad_monitor() {
 
 main() {
     check_dependencies
+    start_vpn_if_needed
     launch_yad_monitor
 }
 
