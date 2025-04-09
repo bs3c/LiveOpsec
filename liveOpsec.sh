@@ -227,39 +227,88 @@ generate_opsec_report() {
     output=""
     [[ "$ALERT" == true ]] && output+="<span foreground='red' weight='bold' size='large'>🚨 ALERT: OPSEC BREACH DETECTED!</span>\n\n"
 
-    output+="🔒 LiveOpsec - Live OPSEC Monitor\n\n"
-    output+="💼 Hostname: $hostname\n"
-    output+="💐 Default Interface: $default_iface\n"
-    output+="🆔 MAC Address: $mac\n"
-    output+="🧠 DNS: $dns\n"
-    output+="🕵️ VPN Status: $vpn_status\n"
-    output+="⛑️ Firewall Status: $firewall_status\n"
-    output+="🧬 Kernel Module Check:\n$kernel_modules\n\n"
-    output+="📹 Media Device Status:\n$media_devices\n\n"
-    output+="🔐 Persistence Check:\n$persistence\n\n"
-    output+="📡 Interfaces:\n$interfaces\n\n"
-    [[ -n "$browsers" ]] && output+="🌐 Active Browser Sessions:\n$browsers\n\n"
-    [[ -n "$suspicious" ]] && output+="⚠️ Suspicious Processes:\n$suspicious\n\n"
-    [[ -n "$recent_ssh" ]] && output+="⚠️ Recent External SSH Logins:\n$recent_ssh\n\n"
-    [[ -n "$listening_ports" ]] && output+="⚙️ Listening Ports:\n$listening_ports\n\n"
-    [[ -n "$conns" ]] && output+="🚁 Active Connections:\n$conns\n\n"
-    [[ -n "$dns_leak" ]] && output+="🔍 DNS Leak Check:\n$dns_leak\n\n"
-    [[ -n "$geoip" ]] && output+="🌍 GeoIP Info:\n$geoip\n\n"
-    [[ -n "$public_info" ]] && output+="🌐 Public IP Info:\n$public_info\n\n"
-    [[ -n "$hidden_files" ]] && output+="🔎 Hidden Files (sample):\n$hidden_files\n\n"
-    [[ -n "$logs" ]] && output+="📜 Recent Logs:\n$logs\n\n"
-    output+="🧬 SetUID/SetGID Binaries:\n$setuid_bins\n\n"
-    output+="🧟 Suspicious Executables in Temp Locations:\n$tmp_exec\n\n"
-    output+="👥 User Session Info:\n$user_activity\n\n"
-    output+="🪪 Sudo Activity Logs:\n$sudo_logs\n\n"
+    output+="<b>🔒 Ghosint - Live OPSEC Monitor</b>\n\n"
 
+    output+="<b>💼 System Identity</b>\n"
+    output+="Hostname: $hostname\n"
+    output+="Interface: $default_iface\n"
+    output+="MAC Address: $mac\n"
+    output+="DNS Servers: $dns\n\n"
+
+    output+="<b>🕵️ VPN Status</b>\n$vpn_status\n"
+    output+="<i>Explanation:</i> Ensures your real IP is hidden behind a VPN tunnel.\n\n"
+
+    output+="<b>⛑️ Firewall Status</b>\n$firewall_status\n"
+    output+="<i>Explanation:</i> Confirms whether system defenses are active.\n\n"
+
+    output+="<b>🧬 Kernel Modules Check</b>\n$kernel_modules\n"
+    output+="<i>Explanation:</i> Detects rootkits or stealthy modules.\n\n"
+
+    output+="<b>📹 Media Devices</b>\n$media_devices\n"
+    output+="<i>Explanation:</i> Flags if webcam or mic are in use.\n\n"
+
+    output+="<b>🔐 Persistence Checks</b>\n$persistence\n"
+    output+="<i>Explanation:</i> Autostarts or cron jobs may be used by malware.\n\n"
+
+    output+="<b>📡 Network Interfaces</b>\n$interfaces\n"
+    output+="<i>Explanation:</i> Lists all network interfaces and IPs.\n\n"
+
+    [[ -n "$browsers" ]] && {
+        output+="<b>🌐 Active Browser Sessions</b>\n$browsers\n"
+        output+="<i>Explanation:</i> Useful to confirm Tor/secure browser usage.\n\n"
+    }
+
+    [[ -n "$suspicious" ]] && {
+        output+="<span foreground='red'><b>⚠️ Suspicious Processes</b></span>\n$suspicious\n"
+        output+="<i>Explanation:</i> Looks for tools commonly used for surveillance or attacks.\n\n"
+    }
+
+    [[ -n "$recent_ssh" ]] && {
+        output+="<b>⚠️ Recent External SSH Logins</b>\n$recent_ssh\n"
+        output+="<i>Explanation:</i> Helps detect unauthorized remote access.\n\n"
+    }
+
+    output+="<b>⚙️ Listening Ports</b>\n$listening_ports\n"
+    output+="<i>Explanation:</i> Shows which services are exposed to the network.\n\n"
+
+    output+="<b>🚁 Active Connections</b>\n$conns\n"
+    output+="<i>Explanation:</i> Helps spot suspicious outbound activity.\n\n"
+
+    output+="<b>🔍 DNS Leak Check</b>\n$dns_leak\n"
+    output+="<i>Explanation:</i> Confirms if DNS requests are leaking real location/IP.\n\n"
+
+    output+="<b>🌍 GeoIP Info</b>\n$geoip\n"
+    output+="<i>Explanation:</i> IP’s geographic location should match VPN expectations.\n\n"
+
+    output+="<b>🌐 Public IP Info</b>\n$public_info\n"
+    output+="<i>Explanation:</i> Reverse DNS & WHOIS give insight into IP reputation.\n\n"
+
+    output+="<b>🔎 Hidden Files (dotfiles)</b>\n$hidden_files\n"
+    output+="<i>Explanation:</i> Might indicate hidden malware configs.\n\n"
+
+    output+="<b>📜 Recent System Logs</b>\n$logs\n"
+    output+="<i>Explanation:</i> Helps spot strange behavior or errors.\n\n"
+
+    output+="<b>📛 SetUID/SetGID Binaries</b>\n$setuid_bins\n"
+    output+="<i>Explanation:</i> Privileged binaries could be exploited.\n\n"
+
+    output+="<b>🧟 Suspicious Temp Execution</b>\n$tmp_exec\n"
+    output+="<i>Explanation:</i> Malware often runs from /tmp or /dev/shm.\n\n"
+
+    output+="<b>👥 User Sessions & Activity</b>\n$user_activity\n"
+    output+="<i>Explanation:</i> Checks current and past logins.\n\n"
+
+    output+="<b>🪪 Sudo Audit Logs</b>\n$sudo_logs\n"
+    output+="<i>Explanation:</i> Shows recent privileged command usage.\n\n"
+
+    # Summary
     passed_checks=$(grep -c "✅" <<< "$output")
     alerts=$(grep -c "⚠️\|❌\|📛\|🧟" <<< "$output")
 
     output+="----------------------\n"
-    output+="🧾 Summary:\n"
-    output+="✅ Passed Checks: $passed_checks\n"
-    output+="🚨 Alerts: $alerts\n"
+    output+="<b>🧾 Summary:</b>\n"
+    output+="✅ Passed Checks: <span foreground='green'>$passed_checks</span>\n"
+    output+="🚨 Alerts: <span foreground='red'>$alerts</span>\n"
     output+="----------------------\n"
 
     echo -e "$output"
