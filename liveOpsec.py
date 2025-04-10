@@ -11,7 +11,6 @@ import sys
 # Ghost theme colors
 BG_COLOR = '#000000'
 TEXT_COLOR = '#FFFFFF'
-ALERT_COLOR = '#FF5555'
 HIGHLIGHT_COLOR = '#AAAAAA'
 
 class OpsecMonitor:
@@ -53,7 +52,7 @@ class OpsecMonitor:
             ('VPN Status', "ip -br addr | grep -E 'tun[0-9]+|wg[0-9]+|proton' || echo 'No VPN interface detected'"),
             ('Tor Status', "ps -eo comm,args | grep -E '^tor\\s' | grep -v grep || echo 'Tor is not running'"),
             ('ProxyChains Usage', "ps -ef | grep proxychains | grep -v grep || echo 'No proxychains usage detected'"),
-            ('Firewall Status', "sudo ufw status | grep -i active"),
+            ('Firewall Status', "ufw status | grep -i active"),
             ('Loaded Kernel Modules', "lsmod | grep -Ei 'hide|rootkit|stealth' || echo 'No suspicious kernel modules found'"),
             ('Media Devices', "lsof /dev/video0 /dev/snd/* 2>/dev/null || echo 'No active media devices'"),
             ('Persistence Checks', "ls /etc/cron* ~/.config/autostart 2>/dev/null"),
