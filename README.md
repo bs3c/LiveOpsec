@@ -37,8 +37,8 @@ pip install protonvpn-cli
 Use the included installer:
 
 ```bash
-chmod +x install-opsecmonitor.sh
-./install-opsecmonitor.sh
+chmod +x install.sh
+./install.sh
 ```
 
 This script:
@@ -52,7 +52,7 @@ This script:
 ## 💻 Running LiveOpsec
 
 ```bash
-sudo python3 liveopsec.py
+sudo python3 liveOpsec.py
 ```
 
 **Note**: The dashboard auto-updates every 15 seconds.
