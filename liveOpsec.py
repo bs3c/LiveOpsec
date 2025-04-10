@@ -9,6 +9,7 @@ import sys
 # Ghost theme colors
 BG_COLOR = '#000000'
 TEXT_COLOR = '#FFFFFF'
+ALERT_COLOR = '#FF5555'
 HIGHLIGHT_COLOR = '#AAAAAA'
 
 class OpsecMonitor:
@@ -96,4 +97,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = OpsecMonitor(root)
     root.mainloop()
+
 
