@@ -26,8 +26,6 @@
 Install the following dependencies:
 
 ```bash
-sudo apt update && sudo apt install -y curl iputils-ping net-tools nmap lsof ss yad whois dnsutils ufw
-
 cd /opt
 
 git clone https://github.com/bs3c/LiveOpsec.git
