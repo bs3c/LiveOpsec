@@ -54,7 +54,7 @@ This script:
 ## 💻 Running LiveOpsec
 
 ```bash
-sudo python3 liveOpsec.py
+liveOpsec
 ```
 
 **Note**: The dashboard auto-updates every 15 seconds.
