@@ -17,7 +17,7 @@ fi
 
 # Add global executable link
 echo "[+] Linking liveOpsec.py to /usr/local/bin/liveopsec..."
-sudo ln -sf /opt/liveopsec/liveOpsec.py /usr/local/bin/liveopsec
+sudo ln -sf /opt/LiveOpsec/liveOpsec.py /usr/local/bin/liveopsec
 sudo chmod +x /opt/liveopsec/liveOpsec.py
 
 echo ""
