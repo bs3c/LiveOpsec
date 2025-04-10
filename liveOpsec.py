@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import subprocess
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
@@ -97,5 +99,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = OpsecMonitor(root)
     root.mainloop()
-
 
