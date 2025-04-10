@@ -2,6 +2,7 @@
 
 import subprocess
 import tkinter as tk
+import signal
 from tkinter.scrolledtext import ScrolledText
 import threading
 import time
@@ -11,6 +12,7 @@ import sys
 # Ghost theme colors
 BG_COLOR = '#000000'
 TEXT_COLOR = '#FFFFFF'
+ALERT_COLOR = '#FF5555'
 HIGHLIGHT_COLOR = '#AAAAAA'
 
 class OpsecMonitor:
@@ -18,7 +20,7 @@ class OpsecMonitor:
         self.root = root
         self.root.title('👻 Ghosint - Live OPSEC Monitor')
         self.root.configure(bg=BG_COLOR)
-        self.root.geometry('900x700')
+        self.root.geometry('1000x1000')
 
         self.output = ScrolledText(root, font=('Courier New', 11), bg=BG_COLOR, fg=TEXT_COLOR)
         self.output.pack(expand=True, fill='both')
@@ -52,7 +54,7 @@ class OpsecMonitor:
             ('VPN Status', "ip -br addr | grep -E 'tun[0-9]+|wg[0-9]+|proton' || echo 'No VPN interface detected'"),
             ('Tor Status', "ps -eo comm,args | grep -E '^tor\\s' | grep -v grep || echo 'Tor is not running'"),
             ('ProxyChains Usage', "ps -ef | grep proxychains | grep -v grep || echo 'No proxychains usage detected'"),
-            ('Firewall Status', "ufw status | grep -i active"),
+            ('Firewall Process Check', "ps -C ufw || ps -C firewalld || ps -C nft || echo 'No firewall process detected'"),
             ('Loaded Kernel Modules', "lsmod | grep -Ei 'hide|rootkit|stealth' || echo 'No suspicious kernel modules found'"),
             ('Media Devices', "lsof /dev/video0 /dev/snd/* 2>/dev/null || echo 'No active media devices'"),
             ('Persistence Checks', "ls /etc/cron* ~/.config/autostart 2>/dev/null"),
@@ -92,16 +94,23 @@ class OpsecMonitor:
             for _ in range(self.refresh_interval):
                 if not self.running:
                     break
-                time.sleep(10)
+                time.sleep(3)
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = OpsecMonitor(root)
 
-try:
-    root.mainloop()
-except KeyboardInterrupt:
-    print("\n[!] Caught interrupt. Exiting cleanly...")
+def handle_sigint(sig, frame):
+    print("\n[!] Caught Ctrl+C (SIGINT). Exiting cleanly...")
     root.quit()
     sys.exit(0)
+
+signal.signal(signal.SIGINT, handle_sigint)
+
+def periodic_check():
+    root.after(100, periodic_check)
+
+periodic_check()
+root.mainloop()
+
 
