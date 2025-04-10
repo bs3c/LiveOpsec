@@ -45,7 +45,6 @@ This script:
 - Installs all required tools
 - Installs ProtonVPN CLI
 - Adds `~/.local/bin` to your path
-- Prompts you to initialize ProtonVPN
 
 ---
 
