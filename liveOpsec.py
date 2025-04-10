@@ -98,5 +98,11 @@ class OpsecMonitor:
 if __name__ == "__main__":
     root = tk.Tk()
     app = OpsecMonitor(root)
+
+try:
     root.mainloop()
+except KeyboardInterrupt:
+    print("\n[!] Caught interrupt. Exiting cleanly...")
+    root.quit()
+    sys.exit(0)
 
