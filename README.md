@@ -47,7 +47,6 @@ chmod +x install.sh
 
 This script:
 - Installs all required tools
-- Installs ProtonVPN CLI
 - Adds `~/.local/bin` to your path
 
 ---
