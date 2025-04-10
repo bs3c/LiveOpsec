@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+"""
+LiveOpsec - Ghosint Live OPSEC Monitor
+Author: Your Name
+Description: Real-time GUI-based operational security tool built with Python and Tkinter.
+"""
+
 import subprocess
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
@@ -67,7 +73,7 @@ class OpsecMonitor:
             ('Public IP Info', "curl -s https://api.ipify.org"),
             ('Hidden Files', "find / -type f -name '.*' 2>/dev/null | head -n 10"),
             ('Recent System Logs', "journalctl --since today | tail -n 10"),
-            ('SetUID Binaries', r"find / -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null | head -n 10"),
+            ('SetUID Binaries', "find / -type f \\( -perm -4000 -o -perm -2000 \\) 2>/dev/null | head -n 10"),
             ('Temp Exec Processes', "ps aux | grep -E '/tmp|/dev/shm|/run' | grep -v grep"),
             ('User Activity', "who -a"),
             ('Sudo Audit Logs', "grep -i 'sudo' /var/log/auth.log 2>/dev/null | tail -n 10")
@@ -80,7 +86,13 @@ class OpsecMonitor:
 
             for title, cmd in commands:
                 result = self.run_command(cmd)
-                color = ALERT_COLOR if ('failed' in result.lower() or 'command failed' in result.lower() or 'not available' in result.lower() or 'no issues detected' not in result.lower()) and title in ['Loaded Kernel Modules', 'Media Devices', 'Suspicious Processes', 'Proxy Status', 'DNS Leak Check'] else TEXT_COLOR
+                color = ALERT_COLOR if (
+                    'failed' in result.lower()
+                    or 'command failed' in result.lower()
+                    or 'not available' in result.lower()
+                    or 'no issues detected' not in result.lower()
+                ) and title in ['Loaded Kernel Modules', 'Media Devices', 'Suspicious Processes', 'Proxy Status', 'DNS Leak Check'] else TEXT_COLOR
+
                 self.output.insert(tk.END, f"{title}:\n", 'highlight')
                 self.output.insert(tk.END, f"{result}\n\n", ('status', color))
 
@@ -119,3 +131,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
