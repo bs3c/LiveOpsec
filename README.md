@@ -17,7 +17,7 @@
 - 🧾 **Sudo Log + System Log Parsing**
 - 🔁 **Persistence Mechanism Detection**
 - 🧑‍💻 **Live User Sessions & SSH Login History**
-- ✨ **Tkinter GUI Dashboard** with color-coded output
+- ✨ **Tkinter GUI Dashboard** 
 
 ---
 
