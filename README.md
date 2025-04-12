@@ -1,7 +1,5 @@
 # 🛡️ LiveOpsec
 
-### Currently under development — please follow the README guide to use the tool. We're actively restructuring the file system and working toward full pip installation support.
-
 **LiveOpsec** is a real-time OPSEC monitoring tool with a sleek terminal GUI, designed for red teamers, security professionals, and privacy-focused users. It detects system compromise, misconfigurations, VPN/firewall status, and suspicious processes with one goal: **self-monitoring for hackers**.
 
 ---
